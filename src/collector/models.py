@@ -8,6 +8,7 @@ NEO4J_PASSWORD = os.environ.get('NEO4J_PASSWORD')
 NEO4J_HOST = os.environ.get('NEO4J_HOST', 'localhost')
 NEO4J_PORT = os.environ.get('NEO4J_PORT', 7687)
 
+config.AUTO_INSTALL_LABELS = True
 config.DATABASE_URL = f'bolt://{NEO4J_USERNAME}:{NEO4J_PASSWORD}@{NEO4J_HOST}:{NEO4J_PORT}'
 
 PROTOCOL_MAP = {
@@ -165,9 +166,9 @@ class SimpleFlowRel(StructuredRel):
     효율 적인 분석을 위해 출발, 도착지 포트를 합산합니다.
     """
     type = StringProperty(required=True, index=True)  # ingress, egress
-    bytes = IntegerProperty()
-    packets = IntegerProperty()
-    traffic_path = IntegerProperty()
+    bytes = IntegerProperty(index=True)
+    packets = IntegerProperty(index=True)
+    traffic_path = IntegerProperty(index=True)
     protocol = StringProperty(index=True)
     pkt_srcaddr = StringProperty()  # srcaddr과 pkt srcaddr이 다를 경우만 저장
     pkt_dstaddr = StringProperty()  # dstaddr과 pkt dstaddr이 다를 경우만 저장
@@ -186,8 +187,9 @@ class Resource(StructuredNode):
     vpc_id = StringProperty(index=True, default=None)
     az_id = StringProperty(index=True, default=None)
     subnet_id = StringProperty(index=True, default=None)
-    eni_id = StringProperty(index=True, default=None)
+    eni_id = StringProperty(default=None, index=True)
     instance_id = StringProperty(index=True, default=None)
+    account_id = StringProperty(index=True, default=None)
     name = StringProperty(default=None)
     security_groups = ArrayProperty(index=True, default=None)
     tags = JSONProperty(default=None)
