@@ -1,7 +1,10 @@
 import os
+from datetime import datetime
+from itertools import islice
+from typing import TypedDict, Iterator
 
 from neomodel import config, StructuredNode, StringProperty, IntegerProperty, RelationshipTo, \
-    StructuredRel, ArrayProperty, JSONProperty
+    StructuredRel, ArrayProperty, JSONProperty, db, DateTimeProperty
 
 NEO4J_USERNAME = os.environ.get('NEO4J_USERNAME', 'neo4j')
 NEO4J_PASSWORD = os.environ.get('NEO4J_PASSWORD')
@@ -161,6 +164,32 @@ PROTOCOL_MAP = {
 }
 
 
+class SimpleFlowRelType(TypedDict):
+    interface_id: str
+    type: str
+    traffic_path: int
+    protocol: str
+    srcaddr: str
+    dstaddr: str
+    pkt_srcaddr: str
+    pkt_dstaddr: str
+    pkt_dst_aws_service: str
+    pkt_src_aws_service: str
+    packets: int
+    bytes: int
+    flow_at: datetime
+
+
+def batched(iterable, n):
+    "Batch data into tuples of length n. The last batch may be shorter."
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    while batch := tuple(islice(it, n)):
+        yield batch
+
+
 class SimpleFlowRel(StructuredRel):
     """
     효율 적인 분석을 위해 출발, 도착지 포트를 합산합니다.
@@ -174,6 +203,44 @@ class SimpleFlowRel(StructuredRel):
     pkt_dstaddr = StringProperty()  # dstaddr과 pkt dstaddr이 다를 경우만 저장
     pkt_src_svc = StringProperty()
     pkt_dst_svc = StringProperty()
+    flow_at = DateTimeProperty()
+
+    @classmethod
+    def ingest_simple_flows(cls, records: Iterator[SimpleFlowRelType]):
+        # todo: ingress, egress 여부에 따라 eni_id도 필터링 하기. 단, ip, eni_id 조합으로 유니크 하게 노드가 생성 되야함
+        query = """
+        UNWIND $records AS record
+        MATCH (src:Resource {address: record.dstaddr})
+        MATCH (dst:Resource {address: record.srcaddr})
+        CREATE (src)-[rel:SIMPLE_FLOW]->(dst)
+        SET rel += record.properties
+
+        """
+        _records = (
+            {
+                'dstaddr': r['dstaddr'],
+                # 'eni_id': r['interface_id'], # todo : create_or_update 할때 eni_id도 유니크 키값으로 사용하면 활성화
+                'srcaddr': r['srcaddr'],
+                'properties': {
+                    'type': 'ingress',
+                    'bytes': r['bytes'],
+                    'packets': r['packets'],
+                    'traffic_path': None if r['traffic_path'] == '-' else r['traffic_path'],
+                    'protocol': PROTOCOL_MAP.get(r['protocol'], r['protocol']),
+                    'pkt_srcaddr': r['pkt_srcaddr'] if r['pkt_srcaddr'] != r['srcaddr'] else None,
+                    'pkt_dstaddr': r['pkt_dstaddr'] if r['pkt_dstaddr'] != r['dstaddr'] else None,
+                    'pkt_src_svc': None if r.get('pkt_src_aws_service') == '-' else r.get('pkt_src_aws_service'),
+                    'pkt_dst_svc': None if r.get('pkt_dst_aws_service') == '-' else r.get('pkt_dst_aws_service'),
+                    'flow_at': r['flow_at'],
+                },
+            } for r in records
+        )
+        total_ingested = 0
+        for records in batched(_records, 1000):
+            params = {'records': records}
+            db.cypher_query(query, params)
+            total_ingested += len(records)
+            print(f'ingested {total_ingested} simple flows')
 
 
 class FlowRel(StructuredRel):

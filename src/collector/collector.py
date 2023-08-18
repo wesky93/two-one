@@ -37,7 +37,14 @@ class LogFile:
         raw.rename(columns=replace_columns, inplace=True)
 
         # remove no data
-        result = raw[raw["bytes"] != '-']
+        result = raw[raw["bytes"] != '-'].copy()
+        result['bytes'] = pd.to_numeric(result['bytes'], errors='coerce')
+        result['packets'] = pd.to_numeric(result['packets'], errors='coerce')
+
+        # replace '-' to None
+        for field in result.columns.values:
+            result[field] = result[field].replace({'-': None})
+
         return result
 
     def flow_direction_filter(self, df, egress=False) -> pd.DataFrame:
@@ -80,6 +87,13 @@ class LogFile:
             ips.add(resource['address'])
             yield resource
 
+    def _to_dict(self, df) -> list:
+        return df.to_dict(orient='records')
+
+    def load_parquet(self):
+        raise NotImplementedError()
+
+    # generate resource
     def get_src_resource(self):
         if not self._src_resource:
             self._src_resource = list(self._get_src_resource())
@@ -125,11 +139,20 @@ class LogFile:
         logger.info('finish ingest dst resource')
         print('finish ingest dst resource')
 
-    def _to_dict(self, df) -> list:
-        return df.to_dict(orient='records')
+    # generate flow
+    def get_records(self):
+        ingress_filter = self.flow_direction_filter(self.df, egress=False)
 
-    def load_parquet(self):
-        raise NotImplementedError()
+        fields = [
+            'flow_direction', 'srcaddr', 'dstaddr', 'interface_id', 'az_id', 'protocol', 'pkt_srcaddr', 'pkt_dstaddr',
+            'pkt_dst_aws_service', 'pkt_src_aws_service', 'traffic_path']
+        grouped = self.df.groupby(fields, dropna=False).agg({'bytes': 'sum', "packets": 'sum'})
+        for groups, aggregated in grouped.iterrows():
+            data = {key: groups[index] for index, key in enumerate(fields)}
+            data['bytes'] = aggregated['bytes']
+            data['packets'] = aggregated['packets']
+            data['flow_at'] = self.dt
+            yield data
 
     # def logs(self):
     #     loader = self.load_parquet if self.log_format == 'parquet' else self.load_csv
@@ -141,18 +164,8 @@ class LogFile:
 if __name__ == '__main__':
     path = '/Users/sinsky/code/two-one/data/sample/AWSLogs/445363019552/vpcflowlogs/ap-northeast-2/2023/06/28/07/445363019552_vpcflowlogs_ap-northeast-2_fl-0ca6e6b2f6070ce84_20230628T0735Z_6626d0f9.log.gz'
     log_file = LogFile(path)
-    print(log_file.dt)
+    ingres_records = log_file.flow_direction_filter(log_file.df, egress=False)
 
-    print(log_file.df.head())
-    print(len(log_file.get_src_resource()))
-    print(len(log_file.get_dst_resource()))
-    log_file.ingest_resource()
-    print(len(Resource.nodes.all()))
-
-
-    log_file.ingest_resource()
-
-    print(len(Resource.nodes.all()))
 
 # 512
 # 10335
