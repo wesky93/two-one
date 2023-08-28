@@ -2,3 +2,5 @@ arrow==1.2.3
 ray==2.6.2
 neomodel==5.1.0
 pandas==2.0.3
+python-on-whales~=0.64.2
+click==8.1.7
