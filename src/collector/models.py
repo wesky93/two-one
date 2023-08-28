@@ -263,3 +263,118 @@ class Resource(StructuredNode):
 
     simple_flows = RelationshipTo('Resource', 'SIMPLE_FLOW', model=SimpleFlowRel)
     flows = RelationshipTo('Resource', 'FLOW', model=FlowRel)
+
+
+DASHBOARD = {
+    "title": "Two One",
+    "version": "2.3",
+    "settings": {
+        "pagenumber": 0,
+        "editable": True,
+        "fullscreenEnabled": False,
+        "parameters": {},
+        "theme": "dark",
+        "downloadImageEnabled": True
+    },
+    "pages": [
+        {
+            "title": "Overview",
+            "reports": [
+                {
+                    "id": "dadfa29a-4e38-450f-baab-2f703372fb60",
+                    "title": "Hi there 👋",
+                    "query": "**This is your first dashboard!** \n \nYou can click (⋮) to edit this report, or add a new report to get started. You can run any Cypher query directly from each report and render data in a variety of formats. \n \nTip: try _renaming_ this report by editing the title text. You can also edit the dashboard header at the top of the screen.\n\n\n",
+                    "width": 3,
+                    "height": 2,
+                    "x": 0,
+                    "y": 0,
+                    "type": "text",
+                    "selection": {},
+                    "settings": {}
+                },
+                {
+                    "id": "b9bffac0-076a-498d-b9b0-9e01f9680f32",
+                    "title": "",
+                    "query": "MATCH (n)-[e]->(m) RETURN n,e,m LIMIT 20\n\n\n",
+                    "width": 3,
+                    "height": 2,
+                    "x": 3,
+                    "y": 0,
+                    "type": "graph",
+                    "selection": {},
+                    "settings": {}
+                },
+                {
+                    "id": "d1bfc841-4b74-436c-a1c4-2da85df22ab1",
+                    "title": "",
+                    "query": "MATCH (n)\nRETURN COUNT(n) as Total\n\n",
+                    "width": 3,
+                    "height": 2,
+                    "x": 6,
+                    "y": 0,
+                    "type": "table",
+                    "selection": {},
+                    "settings": {},
+                    "schema": []
+                },
+                {
+                    "id": "147bf516-a17b-4809-a1ab-fe33a00495e2",
+                    "title": "",
+                    "query": "\nMATCH (n)\nRETURN COUNT(n) as Total\n\n\n\n",
+                    "width": 3,
+                    "height": 2,
+                    "x": 9,
+                    "y": 0,
+                    "type": "bar",
+                    "selection": {
+                        "index": "Total",
+                        "value": "Total",
+                        "key": "(none)"
+                    },
+                    "settings": {},
+                    "schema": []
+                }
+            ]
+        },
+        {
+            "title": "Details",
+            "reports": []
+        }
+    ],
+    "parameters": {},
+    "extensions": {
+        "active": True,
+        "activeReducers": [],
+        "advanced-charts": {
+            "active": True
+        },
+        "styling": {
+            "active": True
+        },
+        "actions": {
+            "active": True
+        }
+    }
+}
+
+
+class NeoDashboard(StructuredNode):
+    __label__ = '_Neodash_Dashboard'
+    title = StringProperty()
+    date = DateTimeProperty()
+    user = StringProperty()
+    content = JSONProperty()
+
+    @classmethod
+    def ingest_dashboard(cls, uesr='neo4j'):
+        data = dict(
+            title='Two One',
+            date=datetime.now(),
+            user=uesr,
+            content=DASHBOARD
+        )
+        cls.create_or_update(data)
+
+
+if __name__ == '__main__':
+    NeoDashboard.ingest_dashboard()
