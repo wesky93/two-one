@@ -161,11 +161,3 @@ class LogFile:
     #
 
 
-if __name__ == '__main__':
-    path = '/Users/sinsky/code/two-one/data/sample/AWSLogs/445363019552/vpcflowlogs/ap-northeast-2/2023/06/28/07/445363019552_vpcflowlogs_ap-northeast-2_fl-0ca6e6b2f6070ce84_20230628T0735Z_6626d0f9.log.gz'
-    log_file = LogFile(path)
-    ingres_records = log_file.flow_direction_filter(log_file.df, egress=False)
-
-
-# 512
-# 10335

@@ -1,14 +1,26 @@
 version: '3'
 
 services:
+  neodash:
+    platform: linux/amd64
+    image: neo4jlabs/neodash
+    network_mode: "bridge"
+    ports:
+      - "5005:5005"
+    environment:
+      - standaloneHost="localhost"
+      - standalonePort="7687"
+      - standaloneDatabase="neo4j"
+      - standalone=true
+      - standaloneUsername="neo4j"
+      - standaloneDashboardName="Two One"
   neo4j:
     image: neo4j:latest
     network_mode: "bridge"
     ports:
       - "7474:7474"
       - "7687:7687"
-#    environment:
-#      - NEO4J_dbms_shell_enabled=true
-#      - NEO4J_AUTH=none
+    environment:
+      - NEO4J_AUTH=none
     volumes:
       - ./data:/data
