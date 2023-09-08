@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from itertools import islice
@@ -11,8 +12,10 @@ NEO4J_PASSWORD = os.environ.get('NEO4J_PASSWORD')
 NEO4J_HOST = os.environ.get('NEO4J_HOST', 'localhost')
 NEO4J_PORT = os.environ.get('NEO4J_PORT', 7687)
 
-config.AUTO_INSTALL_LABELS = True
-config.DATABASE_URL = f'bolt://{NEO4J_USERNAME}:{NEO4J_PASSWORD}@{NEO4J_HOST}:{NEO4J_PORT}'
+DIR = os.path.dirname(os.path.abspath(__file__))
+DASHBOARD_FILE = os.path.join(DIR, 'dashboard.json')
+
+
 
 PROTOCOL_MAP = {
     0: "HOPOPT",
@@ -264,98 +267,9 @@ class Resource(StructuredNode):
     simple_flows = RelationshipTo('Resource', 'SIMPLE_FLOW', model=SimpleFlowRel)
     flows = RelationshipTo('Resource', 'FLOW', model=FlowRel)
 
+    def reset_data(self):
+        self.cypher()
 
-DASHBOARD = {
-    "title": "Two One",
-    "version": "2.3",
-    "settings": {
-        "pagenumber": 0,
-        "editable": True,
-        "fullscreenEnabled": False,
-        "parameters": {},
-        "theme": "dark",
-        "downloadImageEnabled": True
-    },
-    "pages": [
-        {
-            "title": "Overview",
-            "reports": [
-                {
-                    "id": "dadfa29a-4e38-450f-baab-2f703372fb60",
-                    "title": "Hi there 👋",
-                    "query": "**This is your first dashboard!** \n \nYou can click (⋮) to edit this report, or add a new report to get started. You can run any Cypher query directly from each report and render data in a variety of formats. \n \nTip: try _renaming_ this report by editing the title text. You can also edit the dashboard header at the top of the screen.\n\n\n",
-                    "width": 3,
-                    "height": 2,
-                    "x": 0,
-                    "y": 0,
-                    "type": "text",
-                    "selection": {},
-                    "settings": {}
-                },
-                {
-                    "id": "b9bffac0-076a-498d-b9b0-9e01f9680f32",
-                    "title": "",
-                    "query": "MATCH (n)-[e]->(m) RETURN n,e,m LIMIT 20\n\n\n",
-                    "width": 3,
-                    "height": 2,
-                    "x": 3,
-                    "y": 0,
-                    "type": "graph",
-                    "selection": {},
-                    "settings": {}
-                },
-                {
-                    "id": "d1bfc841-4b74-436c-a1c4-2da85df22ab1",
-                    "title": "",
-                    "query": "MATCH (n)\nRETURN COUNT(n) as Total\n\n",
-                    "width": 3,
-                    "height": 2,
-                    "x": 6,
-                    "y": 0,
-                    "type": "table",
-                    "selection": {},
-                    "settings": {},
-                    "schema": []
-                },
-                {
-                    "id": "147bf516-a17b-4809-a1ab-fe33a00495e2",
-                    "title": "",
-                    "query": "\nMATCH (n)\nRETURN COUNT(n) as Total\n\n\n\n",
-                    "width": 3,
-                    "height": 2,
-                    "x": 9,
-                    "y": 0,
-                    "type": "bar",
-                    "selection": {
-                        "index": "Total",
-                        "value": "Total",
-                        "key": "(none)"
-                    },
-                    "settings": {},
-                    "schema": []
-                }
-            ]
-        },
-        {
-            "title": "Details",
-            "reports": []
-        }
-    ],
-    "parameters": {},
-    "extensions": {
-        "active": True,
-        "activeReducers": [],
-        "advanced-charts": {
-            "active": True
-        },
-        "styling": {
-            "active": True
-        },
-        "actions": {
-            "active": True
-        }
-    }
-}
 
 
 class NeoDashboard(StructuredNode):
@@ -367,14 +281,12 @@ class NeoDashboard(StructuredNode):
 
     @classmethod
     def ingest_dashboard(cls, uesr='neo4j'):
-        data = dict(
-            title='Two One',
-            date=datetime.now(),
-            user=uesr,
-            content=DASHBOARD
-        )
-        cls.create_or_update(data)
-
-
-if __name__ == '__main__':
-    NeoDashboard.ingest_dashboard()
+        with open(DASHBOARD_FILE, 'r') as f:
+            DASHBOARD = json.load(f)
+            data = dict(
+                title='Two One',
+                date=datetime.now(),
+                user=uesr,
+                content=DASHBOARD
+            )
+            cls.create_or_update(data)

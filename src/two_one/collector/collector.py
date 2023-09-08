@@ -5,7 +5,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from src.collector.models import Resource
+from .models import Resource
 
 logger = logging.getLogger(__name__)
 
@@ -159,5 +159,3 @@ class LogFile:
     #     for data in loader():
     #         yield FlowRecord(data)
     #
-
-
